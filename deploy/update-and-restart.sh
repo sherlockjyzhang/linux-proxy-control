@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/opt/rpb5-proxy-control}"
-SERVICE_NAME="rpb5-proxy-control"
-ENV_FILE="/etc/rpb5-proxy-control/app.env"
+APP_DIR="${APP_DIR:-/opt/linux-proxy-control}"
+SERVICE_NAME="linux-proxy-control"
+ENV_FILE="/etc/linux-proxy-control/app.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME.service"
-NGINX_SITE="/etc/nginx/sites-available/rpb5-proxy-control"
-NGINX_LINK="/etc/nginx/sites-enabled/rpb5-proxy-control"
-DEPLOY_SNAPSHOT_ROOT="/var/lib/rpb5-proxy-control/deploy-snapshots"
-PI_SERVICE_ASSET="deploy/rpb5-proxy-control.pi.service"
-PI_NGINX_ASSET="deploy/nginx.pi.conf"
+NGINX_SITE="/etc/nginx/sites-available/linux-proxy-control"
+NGINX_LINK="/etc/nginx/sites-enabled/linux-proxy-control"
+DEPLOY_SNAPSHOT_ROOT="/var/lib/linux-proxy-control/deploy-snapshots"
+TRANSITION_SERVICE_ASSET="deploy/linux-proxy-control.transition.service"
+TRANSITION_NGINX_ASSET="deploy/nginx.transition.conf"
 
 OLD_COMMIT=""
 TARGET_COMMIT=""
@@ -306,14 +306,14 @@ fi
 
 cd -- "$APP_DIR" || fail "Unable to enter repository: $APP_DIR"
 OLD_COMMIT="$(git rev-parse HEAD)"
-OLD_SERVICE_ASSET="deploy/rpb5-proxy-control.service"
+OLD_SERVICE_ASSET="deploy/linux-proxy-control.service"
 OLD_NGINX_ASSET="deploy/nginx.conf"
-if id -u rpb5 >/dev/null 2>&1; then
-    SERVICE_USER="rpb5"
+if id -u linux-proxy-control >/dev/null 2>&1; then
+    SERVICE_USER="linux-proxy-control"
 else
     SERVICE_USER="pi"
-    OLD_SERVICE_ASSET="deploy/rpb5-proxy-control.pi.service"
-    OLD_NGINX_ASSET="deploy/nginx.pi.conf"
+    OLD_SERVICE_ASSET="$TRANSITION_SERVICE_ASSET"
+    OLD_NGINX_ASSET="$TRANSITION_NGINX_ASSET"
 fi
 if ! SERVICE_USER_UID="$(id -u "$SERVICE_USER" 2>/dev/null)"; then
     fail "Unable to resolve service user UID: $SERVICE_USER"
@@ -346,15 +346,15 @@ if [[ "$DEPLOY_REF" != "HEAD" ]]; then
     git fetch origin --prune
 fi
 TARGET_COMMIT="$(git rev-parse --verify "${DEPLOY_REF}^{commit}")"
-git cat-file -e "$TARGET_COMMIT:$PI_SERVICE_ASSET" || \
-    fail "Target commit $TARGET_COMMIT does not track $PI_SERVICE_ASSET"
-git cat-file -e "$TARGET_COMMIT:$PI_NGINX_ASSET" || \
-    fail "Target commit $TARGET_COMMIT does not track $PI_NGINX_ASSET"
-SERVICE_ASSET="deploy/rpb5-proxy-control.service"
+git cat-file -e "$TARGET_COMMIT:$TRANSITION_SERVICE_ASSET" || \
+    fail "Target commit $TARGET_COMMIT does not track $TRANSITION_SERVICE_ASSET"
+git cat-file -e "$TARGET_COMMIT:$TRANSITION_NGINX_ASSET" || \
+    fail "Target commit $TARGET_COMMIT does not track $TRANSITION_NGINX_ASSET"
+SERVICE_ASSET="deploy/linux-proxy-control.service"
 NGINX_ASSET="deploy/nginx.conf"
 if [[ "$SERVICE_USER" == "pi" ]]; then
-    SERVICE_ASSET="$PI_SERVICE_ASSET"
-    NGINX_ASSET="$PI_NGINX_ASSET"
+    SERVICE_ASSET="$TRANSITION_SERVICE_ASSET"
+    NGINX_ASSET="$TRANSITION_NGINX_ASSET"
 fi
 git cat-file -e "$TARGET_COMMIT:$SERVICE_ASSET" || \
     fail "Target commit $TARGET_COMMIT does not track $SERVICE_ASSET"
@@ -397,9 +397,9 @@ if [[ "$env_mode" != "600" ]]; then
 fi
 
 if [[ "$SERVICE_USER" == "pi" ]]; then
-    grep -Eq '^User=pi$' "$SERVICE_ASSET" || fail "Pi transition service must run as User=pi"
-    grep -Eq '^Group=pi$' "$SERVICE_ASSET" || fail "Pi transition service must run as Group=pi"
-    grep -Eq '127\.0\.0\.1:8080' "$SERVICE_ASSET" || fail "Pi transition service must bind 127.0.0.1:8080"
+    grep -Eq '^User=pi$' "$SERVICE_ASSET" || fail "Legacy transition service must run as User=pi"
+    grep -Eq '^Group=pi$' "$SERVICE_ASSET" || fail "Legacy transition service must run as Group=pi"
+    grep -Eq '127\.0\.0\.1:8080' "$SERVICE_ASSET" || fail "Legacy transition service must bind 127.0.0.1:8080"
 fi
 
 sudo systemctl --version >/dev/null

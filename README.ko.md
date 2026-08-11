@@ -43,7 +43,7 @@ Clash Verge 같은 Clash 계열 프론트엔드를 사용한다면 Mihomo가 실
 | --- | --- |
 | 7890 | Mihomo mixed-port, 프록시 클라이언트 트래픽 |
 | 9090 | Mihomo external-controller, linux-proxy-control이 호출하는 HTTP API |
-| 8080 | 로컬 Demo / Raspberry Pi 전환용; 운영 서비스는 Unix socket 사용 |
+| 8080 | 로컬 Demo / 전환용; 운영 서비스는 Unix socket 사용 |
 
 ~~~text
 브라우저 -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
@@ -72,7 +72,7 @@ external-controller: 127.0.0.1:9090
 secret: "replace-with-a-long-random-secret"
 ~~~
 
-같은 Raspberry Pi라면 127.0.0.1:9090을 권장합니다. 별도 Linux 서버에서 연결한다면 Mihomo를 관리 LAN 주소에 bind하고 9090은 linux-proxy-control 서버만 접근하도록 방화벽으로 제한하세요. 0.0.0.0:9090은 가급적 피하세요.
+같은 Linux 호스트라면 127.0.0.1:9090을 권장합니다. 별도 Linux 서버에서 연결한다면 Mihomo를 관리 LAN 주소에 bind하고 9090은 linux-proxy-control 서버만 접근하도록 방화벽으로 제한하세요. 0.0.0.0:9090은 가급적 피하세요.
 
 ~~~bash
 export MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
@@ -89,8 +89,8 @@ unset MIHOMO_SECRET
 예제 env 파일을 저장소 밖으로 복사하고 실제 값을 입력합니다.
 
 ~~~bash
-sudo install -m 0600 -o root -g root deploy/rpb5-proxy-control.env.example /etc/rpb5-proxy-control/app.env
-sudoedit /etc/rpb5-proxy-control/app.env
+sudo install -m 0600 -o root -g root deploy/linux-proxy-control.env.example /etc/linux-proxy-control/app.env
+sudoedit /etc/linux-proxy-control/app.env
 ~~~
 
 ~~~dotenv
@@ -98,9 +98,9 @@ DEMO_MODE=false
 MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
 MIHOMO_SECRET=your-real-mihomo-secret
 MIHOMO_CONFIG_PATH=/var/lib/mihomo/config/config.yaml
-CONFIG_DIR=/var/lib/rpb5-proxy-control/config
-PROFILES_DIR=/var/lib/rpb5-proxy-control/config/profiles
-IP_MAPPING_FILE=/var/lib/rpb5-proxy-control/config/ip-mappings.json
+CONFIG_DIR=/var/lib/linux-proxy-control/config
+PROFILES_DIR=/var/lib/linux-proxy-control/config/profiles
+IP_MAPPING_FILE=/var/lib/linux-proxy-control/config/ip-mappings.json
 ALLOW_CONFIG_WRITE=false
 ALLOW_PROFILE_ACTIVATE=false
 ALLOW_SOURCE_IP_ROUTES=false
@@ -113,39 +113,43 @@ MIHOMO_CONFIG_PATH는 Mihomo가 실제로 읽는 YAML입니다. source-IP route�
 Demo는 시뮬레이션 provider를 사용하므로 Mihomo나 실제 secret이 필요하지 않습니다.
 
 ~~~bash
-git clone https://github.com/sherlockjyzhang/linux-proxy-control.git rpb5-proxy-control
-cd rpb5-proxy-control
+git clone https://github.com/sherlockjyzhang/linux-proxy-control.git linux-proxy-control
+cd linux-proxy-control
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 DEMO_MODE=true .venv/bin/python -m backend.app
 ~~~
 
+## ⚠️ 이전 버전에서 업그레이드
+
+이번 릴리스는 실행 사용자와 파일 경로를 `linux-proxy-control`로 통일합니다. 업그레이드하기 전에 기존 서비스를 중지하고 env, 영속 데이터, Mihomo가 현재 읽는 설정을 백업하세요. 두 세대의 서비스가 같은 설정을 동시에 관리하지 않도록 확인하고, source-route 관리 prefix가 변경되었으므로 Mihomo의 기존 그룹과 규칙을 검토한 뒤 실시간 쓰기를 활성화하세요.
+
 http://127.0.0.1:8080을 열어 보세요. Node.js와 npm은 필요하지 않습니다.
 
-## 🐧 Raspberry Pi OS / Debian / Ubuntu 운영 배포
+## 🐧 Linux(Debian, Ubuntu 또는 다른 systemd 배포판) 운영 배포
 
 운영 기본 경로는 다음과 같습니다.
 
-- 애플리케이션: /opt/rpb5-proxy-control
-- 서비스 사용자: rpb5
-- 영속 데이터: /var/lib/rpb5-proxy-control
-- env: /etc/rpb5-proxy-control/app.env
-- Gunicorn Unix socket: /run/rpb5-proxy-control/gunicorn.sock
+- 애플리케이션: /opt/linux-proxy-control
+- 서비스 사용자: linux-proxy-control
+- 영속 데이터: /var/lib/linux-proxy-control
+- env: /etc/linux-proxy-control/app.env
+- Gunicorn Unix socket: /run/linux-proxy-control/gunicorn.sock
 
-apt로 git, python3-venv, python3-pip, nginx, curl을 설치하고 rpb5 사용자와 앱 디렉터리를 만드세요. deploy/rpb5-proxy-control.service와 deploy/nginx.conf를 systemd/nginx에 설치한 다음 nginx -t, systemctl daemon-reload, systemctl enable --now rpb5-proxy-control을 실행하세요. 80/tcp는 UFW로 관리 LAN에만 허용하고 운영에서는 8080을 공개하지 마세요.
+apt로 git, python3-venv, python3-pip, nginx, curl을 설치하고 linux-proxy-control 사용자와 앱 디렉터리를 만드세요. deploy/linux-proxy-control.service와 deploy/nginx.conf를 systemd/nginx에 설치한 다음 nginx -t, systemctl daemon-reload, systemctl enable --now linux-proxy-control을 실행하세요. 80/tcp는 UFW로 관리 LAN에만 허용하고 운영에서는 8080을 공개하지 마세요.
 
 ## 🔄 업데이트, 롤백과 테스트
 
 업데이트 스크립트는 clean Git worktree, env 파일, sudo, nginx, systemd를 요구합니다. app.env, profiles, mapping 및 Mihomo active config를 덮어쓰지 않습니다.
 
 ~~~bash
-cd /opt/rpb5-proxy-control
+cd /opt/linux-proxy-control
 git pull --ff-only
 sudo -v
 ./deploy/update-and-restart.sh
 ~~~
 
-실패한 deployment snapshot은 /var/lib/rpb5-proxy-control/deploy-snapshots/에 남습니다. 업데이트 전에 env, linux-proxy-control 설정 디렉터리, Mihomo active config를 별도로 백업하세요.
+실패한 deployment snapshot은 /var/lib/linux-proxy-control/deploy-snapshots/에 남습니다. 업데이트 전에 env, linux-proxy-control 설정 디렉터리, Mihomo active config를 별도로 백업하세요.
 
 ~~~bash
 .venv/bin/python -m compileall backend
@@ -161,7 +165,7 @@ Mihomo 없이 테스트할 수 있습니다.
 | connected: false | Mihomo 실행 여부, external-controller가 9090인지, secret 일치 여부 |
 | 페이지가 열리지 않음 | systemctl status, nginx -t, UFW, Unix socket 권한 |
 | 노드가 보이지 않음 | /version, /proxies, controller가 9090을 가리키는지 |
-| mapping 적용 실패 | ALLOW_* 설정, MIHOMO_CONFIG_PATH, rpb5 권한 |
+| mapping 적용 실패 | ALLOW_* 설정, MIHOMO_CONFIG_PATH, linux-proxy-control 권한 |
 | 외부에서도 접속 가능 | port-forward를 즉시 제거하고 UFW/라우터 ACL 확인 |
 
 ## 📄 라이선스

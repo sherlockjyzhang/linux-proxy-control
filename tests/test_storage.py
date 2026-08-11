@@ -199,7 +199,7 @@ def test_exact_host_replace_preserves_unrelated_cidr_mappings(tmp_path):
 def test_mapping_transaction_is_reentrant_confined_and_releases_after_exception(tmp_path):
     store, settings = storage(tmp_path)
     other = Storage(settings)
-    assert store.mapping_lock_file == settings.config_dir.resolve() / ".rpb5-mapping.lock"
+    assert store.mapping_lock_file == settings.config_dir.resolve() / ".linux-mapping.lock"
     with pytest.raises(RuntimeError, match="rollback"):
         with store.mapping_transaction():
             assert store.mapping_lock_file.exists()
@@ -376,16 +376,16 @@ def test_apply_source_route_set_reenters_mapping_transaction(tmp_path):
 def test_source_transform_does_not_own_lookalike_group(tmp_path):
     store, _ = storage(tmp_path)
     content = """proxy-groups:
-  - name: rpb5-src-user
+  - name: linux-src-user
     type: select
     proxies: [old]
 rules:
-  - SRC-IP-CIDR,10.0.0.0/8,rpb5-src-user
+  - SRC-IP-CIDR,10.0.0.0/8,linux-src-user
 """
     updated, _ = store.transform_source_routes(content, "192.168.3.148/32", "node-a", ["node-a"])
     document = yaml.safe_load(updated)
-    assert any(group["name"] == "rpb5-src-user" for group in document["proxy-groups"])
-    assert "SRC-IP-CIDR,10.0.0.0/8,rpb5-src-user" in document["rules"]
+    assert any(group["name"] == "linux-src-user" for group in document["proxy-groups"])
+    assert "SRC-IP-CIDR,10.0.0.0/8,linux-src-user" in document["rules"]
 
 
 def test_source_route_transform_isolated_and_unicode_safe(tmp_path):
@@ -401,7 +401,7 @@ rules:
   - MATCH,Proxy
 """
     updated, metadata = store.transform_source_routes(content, "192.168.3.148/32", "韩国-01", ["韩国-01", "日本-01"])
-    assert metadata["group"].startswith("rpb5-src-")
+    assert metadata["group"].startswith("linux-src-")
     assert "SRC-IP-CIDR,192.168.3.148/32," + metadata["group"] in updated
     assert "name: Proxy" in updated and "name: unrelated" in updated
     assert store.save_mappings([{"ip": "192.168.3.148", "region": "韩国"}])[0]["selection"] == {"kind": "region", "value": "韩国"}

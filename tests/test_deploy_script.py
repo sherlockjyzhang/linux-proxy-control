@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY_SCRIPT = ROOT / "deploy" / "update-and-restart.sh"
-TRANSITION_NGINX = ROOT / "deploy" / "nginx.pi.conf"
+TRANSITION_NGINX = ROOT / "deploy" / "nginx.transition.conf"
 
 
 def _git_bash():
@@ -91,8 +91,8 @@ def run_nginx_default_server_parser(bash, nginx_dump):
             "-s",
             "--",
             nginx_dump,
-            "/etc/nginx/sites-available/rpb5-proxy-control",
-            "/etc/nginx/sites-enabled/rpb5-proxy-control",
+            "/etc/nginx/sites-available/linux-proxy-control",
+            "/etc/nginx/sites-enabled/linux-proxy-control",
         ],
         cwd=ROOT,
         input=harness,

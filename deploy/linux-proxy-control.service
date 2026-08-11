@@ -1,0 +1,30 @@
+[Unit]
+Description=linux-proxy-control
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=linux-proxy-control
+# Linux nginx workers normally run as www-data. This group owns
+# the group-readable/writable Gunicorn socket created below.
+Group=www-data
+WorkingDirectory=/opt/linux-proxy-control
+EnvironmentFile=/etc/linux-proxy-control/app.env
+RuntimeDirectory=linux-proxy-control
+RuntimeDirectoryMode=0750
+UMask=0007
+# RuntimeDirectory is private to the service user/group; remove only the
+# known socket path before binding after an interrupted previous run.
+ExecStartPre=/usr/bin/rm -f /run/linux-proxy-control/gunicorn.sock
+ExecStart=/opt/linux-proxy-control/.venv/bin/gunicorn --workers 2 --umask 007 --bind unix:/run/linux-proxy-control/gunicorn.sock backend.app:app
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/var/lib/linux-proxy-control /run/linux-proxy-control
+
+[Install]
+WantedBy=multi-user.target

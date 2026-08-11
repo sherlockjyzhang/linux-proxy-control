@@ -26,7 +26,7 @@ class _ProbeAPIError(RuntimeError):
 
 
 def _api_base():
-    configured = os.getenv("RPB5_PROBE_API_URL", "").strip()
+    configured = os.getenv("LINUX_PROBE_API_URL", "").strip()
     if configured:
         return configured.rstrip("/")
     host = os.getenv("APP_HOST", "127.0.0.1").strip()
@@ -37,7 +37,7 @@ def _api_base():
 
 
 def _timeout_seconds():
-    raw = os.getenv("RPB5_PROBE_TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS)).strip()
+    raw = os.getenv("LINUX_PROBE_TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS)).strip()
     try:
         return max(1, int(raw))
     except ValueError:

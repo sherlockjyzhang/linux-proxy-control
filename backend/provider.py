@@ -234,7 +234,7 @@ class MihomoProvider:
     def _verify_source_routes(self, routes, select=False):
         for route in routes:
             if not self._is_managed_route(route):
-                raise ValueError("source route target is not an exact RPb5-managed group")
+                raise ValueError("source route target is not an exact linux-proxy-control-managed group")
             if select:
                 self.select(route["group"], route["node"])
         groups = self.proxies().get("groups", {})
@@ -254,7 +254,7 @@ class MihomoProvider:
             from ipaddress import ip_network
             source = str(ip_network(route["source"], strict=False))
             import hashlib
-            expected = "rpb5-src-" + hashlib.sha256(source.encode("ascii")).hexdigest()[:20]
+            expected = "linux-src-" + hashlib.sha256(source.encode("ascii")).hexdigest()[:20]
             return route.get("group") == expected
         except (KeyError, TypeError, ValueError, UnicodeEncodeError):
             return False

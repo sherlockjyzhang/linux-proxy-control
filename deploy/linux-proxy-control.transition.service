@@ -1,0 +1,22 @@
+[Unit]
+Description=linux-proxy-control (transition service)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/linux-proxy-control
+EnvironmentFile=/etc/linux-proxy-control/app.env
+ExecStart=/opt/linux-proxy-control/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8080 backend.app:app
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/var/lib/linux-proxy-control
+
+[Install]
+WantedBy=multi-user.target

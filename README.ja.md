@@ -43,7 +43,7 @@ Clash Verge などの Clash 系フロントエンドを使う場合は、実際�
 | --- | --- |
 | 7890 | Mihomo mixed-port。クライアントのプロキシ通信 |
 | 9090 | Mihomo external-controller。linux-proxy-control が呼ぶ HTTP API |
-| 8080 | ローカル Demo / Pi 移行 unit。本番は Unix socket |
+| 8080 | ローカル Demo / 移行 unit。本番は Unix socket |
 
 ~~~text
 ブラウザ -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
@@ -68,7 +68,7 @@ external-controller: 127.0.0.1:9090
 secret: "replace-with-a-long-random-secret"
 ~~~
 
-同じ Raspberry Pi なら 127.0.0.1:9090 が推奨です。別の Linux サーバーから接続する場合は、Mihomo を管理 LAN のアドレスに bind し、9090 は linux-proxy-control サーバーだけに許可します。0.0.0.0:9090 はできるだけ避けてください。
+同じ Linux ホストなら 127.0.0.1:9090 が推奨です。別の Linux サーバーから接続する場合は、Mihomo を管理 LAN のアドレスに bind し、9090 は linux-proxy-control サーバーだけに許可します。0.0.0.0:9090 はできるだけ避けてください。
 
 ~~~bash
 export MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
@@ -83,8 +83,8 @@ unset MIHOMO_SECRET
 ## 🛠️ linux-proxy-control の接続設定
 
 ~~~bash
-sudo install -m 0600 -o root -g root deploy/rpb5-proxy-control.env.example /etc/rpb5-proxy-control/app.env
-sudoedit /etc/rpb5-proxy-control/app.env
+sudo install -m 0600 -o root -g root deploy/linux-proxy-control.env.example /etc/linux-proxy-control/app.env
+sudoedit /etc/linux-proxy-control/app.env
 ~~~
 
 ~~~dotenv
@@ -92,54 +92,58 @@ DEMO_MODE=false
 MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
 MIHOMO_SECRET=your-real-mihomo-secret
 MIHOMO_CONFIG_PATH=/var/lib/mihomo/config/config.yaml
-CONFIG_DIR=/var/lib/rpb5-proxy-control/config
-PROFILES_DIR=/var/lib/rpb5-proxy-control/config/profiles
-IP_MAPPING_FILE=/var/lib/rpb5-proxy-control/config/ip-mappings.json
+CONFIG_DIR=/var/lib/linux-proxy-control/config
+PROFILES_DIR=/var/lib/linux-proxy-control/config/profiles
+IP_MAPPING_FILE=/var/lib/linux-proxy-control/config/ip-mappings.json
 ALLOW_CONFIG_WRITE=false
 ALLOW_PROFILE_ACTIVATE=false
 ALLOW_SOURCE_IP_ROUTES=false
 ~~~
 
-MIHOMO_CONFIG_PATH は Mihomo が実際に読み込む YAML です。source-IP route を Mihomo に書くには ALLOW_SOURCE_IP_ROUTES=true と必要な権限が必要です。PROFILES_DIR と IP_MAPPING_FILE は CONFIG_DIR の内部に置いてください。chmod 777 は使わず、rpb5 に最小権限だけを与えます。
+MIHOMO_CONFIG_PATH は Mihomo が実際に読み込む YAML です。source-IP route を Mihomo に書くには ALLOW_SOURCE_IP_ROUTES=true と必要な権限が必要です。PROFILES_DIR と IP_MAPPING_FILE は CONFIG_DIR の内部に置いてください。chmod 777 は使わず、linux-proxy-control に最小権限だけを与えます。
 
 ## 🚀 Demo
 
 Mihomo を使わずに画面を確認できます。
 
 ~~~bash
-git clone https://github.com/sherlockjyzhang/linux-proxy-control.git rpb5-proxy-control
-cd rpb5-proxy-control
+git clone https://github.com/sherlockjyzhang/linux-proxy-control.git linux-proxy-control
+cd linux-proxy-control
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 DEMO_MODE=true .venv/bin/python -m backend.app
 ~~~
 
+## ⚠️ 旧バージョンからの移行
+
+このリリースでは、実行ユーザーとファイルパスを `linux-proxy-control` に統一しました。移行前に旧サービスを停止し、env、永続データ、Mihomo が現在読み込んでいる設定をバックアップしてください。2 世代のサービスが同じ設定を同時に管理しないことを確認し、source-route の管理プレフィックスが変わったため、Mihomo の既存グループとルールを確認してから live write を有効にしてください。
+
 http://127.0.0.1:8080 を開いてください。Node.js と npm は不要です。
 
-## 🐧 Raspberry Pi OS / Debian / Ubuntu 本番配置
+## 🐧 Linux（Debian、Ubuntu、その他の systemd ディストリビューション）本番配置
 
 既定の配置は次のとおりです。
 
-- アプリ: /opt/rpb5-proxy-control
-- サービスユーザー: rpb5
-- 永続データ: /var/lib/rpb5-proxy-control
-- env: /etc/rpb5-proxy-control/app.env
-- Gunicorn socket: /run/rpb5-proxy-control/gunicorn.sock
+- アプリ: /opt/linux-proxy-control
+- サービスユーザー: linux-proxy-control
+- 永続データ: /var/lib/linux-proxy-control
+- env: /etc/linux-proxy-control/app.env
+- Gunicorn socket: /run/linux-proxy-control/gunicorn.sock
 
-apt で git、python3-venv、python3-pip、nginx、curl をインストールし、rpb5 ユーザーとアプリディレクトリを作成します。deploy/rpb5-proxy-control.service と deploy/nginx.conf を systemd/nginx にインストールし、nginx -t、systemctl daemon-reload、systemctl enable --now rpb5-proxy-control を実行してください。80/tcp は管理 LAN にだけ UFW で許可し、本番で 8080 を公開しないでください。
+apt で git、python3-venv、python3-pip、nginx、curl をインストールし、linux-proxy-control ユーザーとアプリディレクトリを作成します。deploy/linux-proxy-control.service と deploy/nginx.conf を systemd/nginx にインストールし、nginx -t、systemctl daemon-reload、systemctl enable --now linux-proxy-control を実行してください。80/tcp は管理 LAN にだけ UFW で許可し、本番で 8080 を公開しないでください。
 
 ## 🔄 更新、ロールバック、テスト
 
 更新スクリプトは clean な Git worktree、env、sudo、nginx、systemd を要求します。app.env、profile、mapping、Mihomo の active config は上書きしません。
 
 ~~~bash
-cd /opt/rpb5-proxy-control
+cd /opt/linux-proxy-control
 git pull --ff-only
 sudo -v
 ./deploy/update-and-restart.sh
 ~~~
 
-失敗した deployment snapshot は /var/lib/rpb5-proxy-control/deploy-snapshots/ に残ります。更新前に env、linux-proxy-control の設定ディレクトリ、Mihomo の active config を別途バックアップしてください。
+失敗した deployment snapshot は /var/lib/linux-proxy-control/deploy-snapshots/ に残ります。更新前に env、linux-proxy-control の設定ディレクトリ、Mihomo の active config を別途バックアップしてください。
 
 ~~~bash
 .venv/bin/python -m compileall backend
@@ -155,7 +159,7 @@ Mihomo なしでテストできます。
 | connected: false | Mihomo、external-controller が 9090、secret の一致 |
 | ページが開かない | systemctl status、nginx -t、UFW、Unix socket の権限 |
 | node が表示されない | /version、/proxies、controller が 9090 を指しているか |
-| mapping が適用できない | ALLOW_*、MIHOMO_CONFIG_PATH、rpb5 の権限 |
+| mapping が適用できない | ALLOW_*、MIHOMO_CONFIG_PATH、linux-proxy-control の権限 |
 | LAN 外からも開ける | port-forward を削除し、UFW とルーター ACL を確認 |
 
 ## 📄 ライセンス

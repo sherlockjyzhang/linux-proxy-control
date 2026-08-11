@@ -375,7 +375,7 @@ def test_reserved_group_state_drift_fails_closed(monkeypatch):
 
 def test_unmanaged_group_state_ignores_managed_members(monkeypatch):
     instance = provider()
-    managed = "rpb5-src-example"
+    managed = "linux-src-example"
     prior = {
         "GLOBAL": {"type": "Global", "now": "node-a", "all": ["node-a", "Proxy"]},
     }
@@ -414,7 +414,7 @@ def test_group_selection_verification_includes_reserved_group_state(monkeypatch)
 
 def test_structured_source_rule_matching_requires_exact_type_source_and_group():
     source = "192.168.3.148/32"
-    group = "rpb5-src-expected"
+    group = "linux-src-expected"
     assert MihomoProvider._source_rule_matches({"type": "SRC-IP-CIDR", "payload": source, "proxy": group}, source, group)
     assert MihomoProvider._source_rule_matches({"type": "SrcIPCIDR", "payload": source, "proxy": group}, source, group)
     assert not MihomoProvider._source_rule_matches({"type": "DOMAIN", "payload": source, "proxy": group}, source, group)
@@ -425,7 +425,7 @@ def test_source_restore_selects_only_managed_groups(monkeypatch):
     instance = provider()
     calls = []
     source = "192.168.3.148/32"
-    managed = "rpb5-src-" + hashlib.sha256(source.encode("ascii")).hexdigest()[:20]
+    managed = "linux-src-" + hashlib.sha256(source.encode("ascii")).hexdigest()[:20]
     monkeypatch.setattr(instance, "proxies", lambda: {"groups": {
         "Proxy": {"now": "new-shared", "all": ["old-shared", "new-shared"]},
         managed: {"now": "new-node", "all": ["old-node", "new-node"]},

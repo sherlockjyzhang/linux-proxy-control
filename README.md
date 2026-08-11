@@ -50,7 +50,7 @@ Mihomo still carries the traffic. linux-proxy-control is the control panel: it d
 | --- | --- | --- |
 | `7890` | Your proxy clients | Mihomo `mixed-port`, carrying proxy traffic |
 | `9090` | This dashboard | Mihomo `external-controller`, an HTTP API |
-| `8080` | Local demo / Pi transition unit | Temporary app HTTP port; production uses a Unix socket |
+| `8080` | Local demo / transition unit | Temporary app HTTP port; production uses a Unix socket |
 
 ```text
 Browser -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
@@ -82,7 +82,7 @@ secret: "replace-with-a-long-random-secret"
 
 ### 📍 Choose the controller address
 
-- **Same Raspberry Pi:** use `127.0.0.1:9090`. This is the safest option.
+- **Same Linux host:** use `127.0.0.1:9090`. This is the safest option.
 - **Separate Linux server:** bind Mihomo to the management-LAN address and firewall port `9090` so only the linux-proxy-control server can connect.
 - **Avoid `0.0.0.0:9090`:** if you truly need it, use a strong secret plus strict firewall and upstream ACL rules.
 
@@ -114,9 +114,9 @@ Copy the example outside the repository and edit the copy:
 
 ```bash
 sudo install -m 0600 -o root -g root \
-  deploy/rpb5-proxy-control.env.example \
-  /etc/rpb5-proxy-control/app.env
-sudoedit /etc/rpb5-proxy-control/app.env
+  deploy/linux-proxy-control.env.example \
+  /etc/linux-proxy-control/app.env
+sudoedit /etc/linux-proxy-control/app.env
 ```
 
 Important values:
@@ -128,9 +128,9 @@ MIHOMO_SECRET=your-real-mihomo-secret
 
 # The active Mihomo YAML; needed for config/source-IP write features
 MIHOMO_CONFIG_PATH=/var/lib/mihomo/config/config.yaml
-CONFIG_DIR=/var/lib/rpb5-proxy-control/config
-PROFILES_DIR=/var/lib/rpb5-proxy-control/config/profiles
-IP_MAPPING_FILE=/var/lib/rpb5-proxy-control/config/ip-mappings.json
+CONFIG_DIR=/var/lib/linux-proxy-control/config
+PROFILES_DIR=/var/lib/linux-proxy-control/config/profiles
+IP_MAPPING_FILE=/var/lib/linux-proxy-control/config/ip-mappings.json
 
 # Keep these false unless the deployment is protected
 ALLOW_CONFIG_WRITE=false
@@ -138,15 +138,15 @@ ALLOW_PROFILE_ACTIVATE=false
 ALLOW_SOURCE_IP_ROUTES=false
 ```
 
-`MIHOMO_CONTROLLER_URL` points to the API above. `MIHOMO_SECRET` must match Mihomo’s `secret`. `MIHOMO_CONFIG_PATH` must point to the YAML Mihomo actually loads if you want configuration or source-IP route management. The `rpb5` service user needs the smallest necessary read/write permission—never use `chmod 777`. `PROFILES_DIR` and `IP_MAPPING_FILE` must stay inside `CONFIG_DIR`.
+`MIHOMO_CONTROLLER_URL` points to the API above. `MIHOMO_SECRET` must match Mihomo’s `secret`. `MIHOMO_CONFIG_PATH` must point to the YAML Mihomo actually loads if you want configuration or source-IP route management. The `linux-proxy-control` service user needs the smallest necessary read/write permission—never use `chmod 777`. `PROFILES_DIR` and `IP_MAPPING_FILE` must stay inside `CONFIG_DIR`.
 
 ## 🚀 Quick demo: see the dashboard before touching hardware
 
 The demo uses a simulated provider. It does not need Mihomo or a real secret:
 
 ```bash
-git clone https://github.com/sherlockjyzhang/linux-proxy-control.git rpb5-proxy-control
-cd rpb5-proxy-control
+git clone https://github.com/sherlockjyzhang/linux-proxy-control.git linux-proxy-control
+cd linux-proxy-control
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 DEMO_MODE=true .venv/bin/python -m backend.app
@@ -160,42 +160,42 @@ curl -fsS http://127.0.0.1:8080/api/health
 
 The frontend is served directly by Flask. Node.js, npm, and a frontend build step are not required. 🎉
 
-## 🐧 Production install on Raspberry Pi OS, Debian, or Ubuntu
+## 🐧 Production install on Linux (Debian, Ubuntu, or another systemd distribution)
 
 Install the prerequisites and create the service user:
 
 ```bash
 sudo apt update
 sudo apt install -y git python3 python3-venv python3-pip nginx curl
-sudo useradd --system --home /var/lib/rpb5-proxy-control --shell /usr/sbin/nologin rpb5
-sudo install -d -o rpb5 -g rpb5 /opt/rpb5-proxy-control
-sudo install -d -o rpb5 -g rpb5 /var/lib/rpb5-proxy-control/config/profiles
-sudo install -d -o root -g root -m 0750 /etc/rpb5-proxy-control
-sudo git clone https://github.com/sherlockjyzhang/linux-proxy-control.git /opt/rpb5-proxy-control
-sudo chown -R rpb5:rpb5 /opt/rpb5-proxy-control
-sudo -u rpb5 python3 -m venv /opt/rpb5-proxy-control/.venv
-sudo -u rpb5 /opt/rpb5-proxy-control/.venv/bin/pip install -r /opt/rpb5-proxy-control/requirements.txt
+sudo useradd --system --home /var/lib/linux-proxy-control --shell /usr/sbin/nologin linux-proxy-control
+sudo install -d -o linux-proxy-control -g linux-proxy-control /opt/linux-proxy-control
+sudo install -d -o linux-proxy-control -g linux-proxy-control /var/lib/linux-proxy-control/config/profiles
+sudo install -d -o root -g root -m 0750 /etc/linux-proxy-control
+sudo git clone https://github.com/sherlockjyzhang/linux-proxy-control.git /opt/linux-proxy-control
+sudo chown -R linux-proxy-control:linux-proxy-control /opt/linux-proxy-control
+sudo -u linux-proxy-control python3 -m venv /opt/linux-proxy-control/.venv
+sudo -u linux-proxy-control /opt/linux-proxy-control/.venv/bin/pip install -r /opt/linux-proxy-control/requirements.txt
 ```
 
 Install the env, systemd unit, and nginx site:
 
 ```bash
 sudo install -m 0600 -o root -g root \
-  /opt/rpb5-proxy-control/deploy/rpb5-proxy-control.env.example \
-  /etc/rpb5-proxy-control/app.env
-sudoedit /etc/rpb5-proxy-control/app.env
+  /opt/linux-proxy-control/deploy/linux-proxy-control.env.example \
+  /etc/linux-proxy-control/app.env
+sudoedit /etc/linux-proxy-control/app.env
 
 sudo install -D -m 0644 \
-  /opt/rpb5-proxy-control/deploy/rpb5-proxy-control.service \
-  /etc/systemd/system/rpb5-proxy-control.service
+  /opt/linux-proxy-control/deploy/linux-proxy-control.service \
+  /etc/systemd/system/linux-proxy-control.service
 sudo install -D -m 0644 \
-  /opt/rpb5-proxy-control/deploy/nginx.conf \
-  /etc/nginx/sites-available/rpb5-proxy-control
-sudo ln -sfn /etc/nginx/sites-available/rpb5-proxy-control \
-  /etc/nginx/sites-enabled/rpb5-proxy-control
+  /opt/linux-proxy-control/deploy/nginx.conf \
+  /etc/nginx/sites-available/linux-proxy-control
+sudo ln -sfn /etc/nginx/sites-available/linux-proxy-control \
+  /etc/nginx/sites-enabled/linux-proxy-control
 sudo nginx -t
 sudo systemctl daemon-reload
-sudo systemctl enable --now rpb5-proxy-control
+sudo systemctl enable --now linux-proxy-control
 sudo systemctl reload nginx
 ```
 
@@ -204,25 +204,25 @@ Allow port 80 only from your trusted management network:
 ```bash
 sudo ufw allow from <trusted-lan-cidr> to any port 80 proto tcp
 sudo ufw deny 80/tcp
-sudo systemctl is-active --quiet rpb5-proxy-control
+sudo systemctl is-active --quiet linux-proxy-control
 curl -fsS http://127.0.0.1/api/health
 curl -fsS http://<linux-host-lan-address>/api/health
 ```
 
-The final service uses `/run/rpb5-proxy-control/gunicorn.sock`; it should not expose port 8080.
+The final service uses `/run/linux-proxy-control/gunicorn.sock`; it should not expose port 8080.
 
 ## 🔄 Updates and rollback
 
 The update script expects a clean Git worktree, an existing env file, `sudo`, nginx, and systemd. It does not overwrite `app.env`, profiles, mappings, or Mihomo’s active configuration:
 
 ```bash
-cd /opt/rpb5-proxy-control
+cd /opt/linux-proxy-control
 git pull --ff-only
 sudo -v
 ./deploy/update-and-restart.sh
 ```
 
-Back up the env file, the linux-proxy-control config directory, and Mihomo’s active configuration separately. Failed deployment snapshots are kept under `/var/lib/rpb5-proxy-control/deploy-snapshots/`.
+Back up the env file, the linux-proxy-control config directory, and Mihomo’s active configuration separately. Failed deployment snapshots are kept under `/var/lib/linux-proxy-control/deploy-snapshots/`.
 
 ## 🧪 Tests
 
@@ -240,9 +240,13 @@ Mihomo is not required for the local test suite:
 | `connected: false` | Mihomo is running, `external-controller` is `9090`, and the secret matches |
 | Page does not open | `systemctl status`, `nginx -t`, UFW, and Unix socket permissions |
 | Page opens but no nodes appear | Call `/version` and `/proxies`; ensure linux-proxy-control points to `9090`, not `7890` |
-| Config change fails | `ALLOW_*` flags, the active `MIHOMO_CONFIG_PATH`, and `rpb5` permissions |
+| Config change fails | `ALLOW_*` flags, the active `MIHOMO_CONFIG_PATH`, and `linux-proxy-control` permissions |
 | LAN access is wider than expected | Remove port forwards and review UFW/router ACLs immediately |
 
 ## 📄 License
+
+## ⚠️ Upgrading from an older release
+
+This release standardizes the runtime identity and filesystem paths around `linux-proxy-control`. Before upgrading, stop the previous service, back up its env/data and the active Mihomo configuration, and verify that only one service generation will manage that configuration. The managed source-route prefix has changed, so inspect existing Mihomo groups and rules and migrate them deliberately before enabling live writes.
 
 MIT License: [LICENSE](LICENSE). Security guidance: [SECURITY.md](SECURITY.md).

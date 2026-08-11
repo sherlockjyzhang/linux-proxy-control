@@ -75,7 +75,7 @@ function rootView() {
   const mapping = state.rootDraft || savedMapping || canonical({});
   const effective = me.effective ? canonical(me.effective) : null;
   const decision = me.effective_decision;
-  return `<section class="page narrow"><header class="masthead"><div><p class="eyebrow">RPb5 Proxy Control</p><h1>Your connection preference</h1><p class="subtitle">Set the routing preference for ${esc(me.ip || me.client_ip || 'your current address')}.</p></div><a class="admin-link" href="/admin">Administration</a></header>
+  return `<section class="page narrow"><header class="masthead"><div><p class="eyebrow">linux-proxy-control</p><h1>Your connection preference</h1><p class="subtitle">Set the routing preference for ${esc(me.ip || me.client_ip || 'your current address')}.</p></div><a class="admin-link" href="/admin">Administration</a></header>
     ${notice()}
     <section class="panel"><div class="panel-head"><div><h2>Preference</h2><p>Choose one routing mode. The saved preference applies only to your exact IP address.</p></div></div>
       ${selectionControl(mapping, 0, false)}
@@ -118,7 +118,7 @@ function decisionForMapping(mapping, index) {
 }
 
 function adminView() {
-  return `<section class="page"><header class="masthead"><div><p class="eyebrow">RPb5 Proxy Control</p><h1>IP routing administration</h1><p class="subtitle">Manage canonical IP and CIDR mapping records.</p></div><a class="admin-link" href="/">My preference</a></header>
+  return `<section class="page"><header class="masthead"><div><p class="eyebrow">linux-proxy-control</p><h1>IP routing administration</h1><p class="subtitle">Manage canonical IP and CIDR mapping records.</p></div><a class="admin-link" href="/">My preference</a></header>
     ${notice()}
     <section class="panel"><div class="panel-head"><div><h2>Mappings</h2><p>Each record uses exactly one selection mode. New records default to no cross-region fallback.</p></div><button class="button secondary" type="button" data-action="add-map">Add mapping</button></div>
       <div class="mapping-list">${state.mappings.length ? state.mappings.map(mappingRow).join('') : '<div class="empty">No IP or CIDR mappings configured.</div>'}</div>

@@ -49,7 +49,7 @@ linux-proxy-control 是一个轻量的 Flask 控制面板，连接已经运行�
 | --- | --- | --- |
 | 7890 | 电脑、手机和其他代理客户端 | Mihomo mixed-port，承载实际代理流量 |
 | 9090 | linux-proxy-control | Mihomo external-controller，提供 HTTP API |
-| 8080 | 本地 Demo / Pi 过渡 unit | 临时应用 HTTP 端口；生产服务使用 Unix socket |
+| 8080 | 本地 Demo / 过渡 unit | 临时应用 HTTP 端口；生产服务使用 Unix socket |
 
 ~~~text
 浏览器 -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
@@ -78,7 +78,7 @@ external-controller: 127.0.0.1:9090
 secret: "replace-with-a-long-random-secret"
 ~~~
 
-如果 linux-proxy-control 和 Mihomo 在同一台树莓派上，推荐使用 127.0.0.1:9090。如果它们在不同机器上，请让 Mihomo 监听管理 LAN 地址，并用防火墙只允许 linux-proxy-control 服务器访问 9090。尽量不要使用 0.0.0.0:9090。
+如果 linux-proxy-control 和 Mihomo 在同一台 Linux 主机上，推荐使用 127.0.0.1:9090。如果它们在不同机器上，请让 Mihomo 监听管理 LAN 地址，并用防火墙只允许 linux-proxy-control 服务器访问 9090。尽量不要使用 0.0.0.0:9090。
 
 重启 Mihomo 后，先验证 API 和 secret：
 
@@ -97,8 +97,8 @@ unset MIHOMO_SECRET
 将环境示例复制到仓库之外，并编辑真实值：
 
 ~~~bash
-sudo install -m 0600 -o root -g root deploy/rpb5-proxy-control.env.example /etc/rpb5-proxy-control/app.env
-sudoedit /etc/rpb5-proxy-control/app.env
+sudo install -m 0600 -o root -g root deploy/linux-proxy-control.env.example /etc/linux-proxy-control/app.env
+sudoedit /etc/linux-proxy-control/app.env
 ~~~
 
 ~~~dotenv
@@ -106,54 +106,58 @@ DEMO_MODE=false
 MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
 MIHOMO_SECRET=your-real-mihomo-secret
 MIHOMO_CONFIG_PATH=/var/lib/mihomo/config/config.yaml
-CONFIG_DIR=/var/lib/rpb5-proxy-control/config
-PROFILES_DIR=/var/lib/rpb5-proxy-control/config/profiles
-IP_MAPPING_FILE=/var/lib/rpb5-proxy-control/config/ip-mappings.json
+CONFIG_DIR=/var/lib/linux-proxy-control/config
+PROFILES_DIR=/var/lib/linux-proxy-control/config/profiles
+IP_MAPPING_FILE=/var/lib/linux-proxy-control/config/ip-mappings.json
 ALLOW_CONFIG_WRITE=false
 ALLOW_PROFILE_ACTIVATE=false
 ALLOW_SOURCE_IP_ROUTES=false
 ~~~
 
-MIHOMO_CONFIG_PATH 必须指向 Mihomo 当前真正加载的 YAML。只有要把 source-IP route 写入 Mihomo 时，才需要打开 ALLOW_SOURCE_IP_ROUTES=true 并准备必要权限。PROFILES_DIR 和 IP_MAPPING_FILE 必须位于 CONFIG_DIR 中。不要使用 chmod 777，请只授予 rpb5 最小必要权限。
+MIHOMO_CONFIG_PATH 必须指向 Mihomo 当前真正加载的 YAML。只有要把 source-IP route 写入 Mihomo 时，才需要打开 ALLOW_SOURCE_IP_ROUTES=true 并准备必要权限。PROFILES_DIR 和 IP_MAPPING_FILE 必须位于 CONFIG_DIR 中。不要使用 chmod 777，请只授予 linux-proxy-control 最小必要权限。
 
 ## 🚀 Demo
 
 Demo 使用模拟 provider，不会连接 Mihomo，也不需要真实 secret。
 
 ~~~bash
-git clone https://github.com/sherlockjyzhang/linux-proxy-control.git rpb5-proxy-control
-cd rpb5-proxy-control
+git clone https://github.com/sherlockjyzhang/linux-proxy-control.git linux-proxy-control
+cd linux-proxy-control
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 DEMO_MODE=true .venv/bin/python -m backend.app
 ~~~
 
+## ⚠️ 从旧版本升级
+
+本版本将运行身份和文件路径统一为 `linux-proxy-control`。升级前请先停止旧服务，备份 env、持久化数据和 Mihomo 当前加载的配置，并确认不会有两代服务同时操作同一份配置。source-route 的管理前缀已经变化，请先检查 Mihomo 中已有的代理组和规则，确认并完成迁移后再开启实时写入。
+
 打开 http://127.0.0.1:8080 即可体验。前端由 Flask 直接提供，不需要 Node.js 或 npm。
 
-## 🐧 Raspberry Pi OS / Debian / Ubuntu 生产部署
+## 🐧 Linux（Debian、Ubuntu 或其他 systemd 发行版）生产部署
 
 生产部署沿用仓库中的技术路径：
 
-- 应用：/opt/rpb5-proxy-control
-- 服务用户：rpb5
-- 持久数据：/var/lib/rpb5-proxy-control
-- env：/etc/rpb5-proxy-control/app.env
-- Gunicorn Unix socket：/run/rpb5-proxy-control/gunicorn.sock
+- 应用：/opt/linux-proxy-control
+- 服务用户：linux-proxy-control
+- 持久数据：/var/lib/linux-proxy-control
+- env：/etc/linux-proxy-control/app.env
+- Gunicorn Unix socket：/run/linux-proxy-control/gunicorn.sock
 
-安装 git、Python venv、nginx、curl 后，创建 rpb5 用户和应用目录，安装 deploy/rpb5-proxy-control.service 与 deploy/nginx.conf，然后执行 nginx -t、systemctl daemon-reload、systemctl enable --now rpb5-proxy-control。80/tcp 只允许可信管理 LAN 访问，生产环境不要暴露 8080。
+安装 git、Python venv、nginx、curl 后，创建 linux-proxy-control 用户和应用目录，安装 deploy/linux-proxy-control.service 与 deploy/nginx.conf，然后执行 nginx -t、systemctl daemon-reload、systemctl enable --now linux-proxy-control。80/tcp 只允许可信管理 LAN 访问，生产环境不要暴露 8080。
 
 ## 🔄 更新、回滚和测试
 
 更新脚本要求 Git worktree 干净，并且已经配置 env、sudo、nginx 和 systemd。它不会覆盖 app.env、profile、mapping 或 Mihomo 活动配置。
 
 ~~~bash
-cd /opt/rpb5-proxy-control
+cd /opt/linux-proxy-control
 git pull --ff-only
 sudo -v
 ./deploy/update-and-restart.sh
 ~~~
 
-失败的 deployment snapshot 保存在 /var/lib/rpb5-proxy-control/deploy-snapshots/。生产更新前，请另行备份 env、linux-proxy-control 配置目录和 Mihomo 活动配置。
+失败的 deployment snapshot 保存在 /var/lib/linux-proxy-control/deploy-snapshots/。生产更新前，请另行备份 env、linux-proxy-control 配置目录和 Mihomo 活动配置。
 
 ~~~bash
 .venv/bin/python -m compileall backend
@@ -169,7 +173,7 @@ sudo -v
 | connected: false | Mihomo 是否运行、external-controller 是否为 9090、secret 是否匹配 |
 | 页面打不开 | systemctl status、nginx -t、UFW、Unix socket 权限 |
 | 页面能开但没有节点 | /version、/proxies，以及 controller 是否指向 9090 而不是 7890 |
-| mapping 应用失败 | ALLOW_*、MIHOMO_CONFIG_PATH、rpb5 最小权限 |
+| mapping 应用失败 | ALLOW_*、MIHOMO_CONFIG_PATH、linux-proxy-control 最小权限 |
 | 局域网外也能访问 | 立即删除 port-forward，检查 UFW 和路由器 ACL |
 
 ## 📄 许可证

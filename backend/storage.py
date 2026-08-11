@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._:/()+-]{0,127}$")
-MANAGED_PREFIX = "rpb5-src-"
+MANAGED_PREFIX = "linux-src-"
 SENSITIVE_KEY_RE = re.compile(r"(?:secret|token|password|passwd|credential|authorization|auth|subscription|subscribe)", re.I)
 URL_RE = re.compile(r"(?:https?|socks5?)://[^\s\"']+", re.I)
 _MAPPING_LOCKS = {}
@@ -39,7 +39,7 @@ class Storage:
         self._config_root = root
         self.mapping_file = settings.mapping_file
         self.mapping_file.parent.mkdir(parents=True, exist_ok=True)
-        self.mapping_lock_file = root / ".rpb5-mapping.lock"
+        self.mapping_lock_file = root / ".linux-mapping.lock"
         self._route_lock = threading.RLock()
 
     @staticmethod
@@ -510,7 +510,7 @@ class Storage:
     def _atomic_yaml(self, target, content):
         if target.exists():
             shutil.copy2(target, str(target) + ".bak")
-        fd, temp = tempfile.mkstemp(prefix=".rpb5-", dir=str(target.parent), text=True)
+        fd, temp = tempfile.mkstemp(prefix=".linux-", dir=str(target.parent), text=True)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 handle.write(content)
@@ -539,7 +539,7 @@ class Storage:
             return normalized
 
     def _write_mappings(self, normalized):
-        fd, temp = tempfile.mkstemp(prefix=".rpb5-map-", dir=str(self.mapping_file.parent), text=True)
+        fd, temp = tempfile.mkstemp(prefix=".linux-map-", dir=str(self.mapping_file.parent), text=True)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 json.dump(normalized, handle, indent=2)
@@ -553,7 +553,7 @@ class Storage:
         return normalized
 
     def _atomic_bytes(self, target, content):
-        fd, temp = tempfile.mkstemp(prefix=".rpb5-map-", dir=str(target.parent))
+        fd, temp = tempfile.mkstemp(prefix=".linux-map-", dir=str(target.parent))
         try:
             with os.fdopen(fd, "wb") as handle:
                 handle.write(content)
