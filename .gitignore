@@ -32,3 +32,7 @@ deploy-snapshots/
 
 # Internal planning notes; do not publish with the application.
 PROMPT.md
+
+# Local agent instructions; keep them on the maintainer's machine.
+Agents.md
+AGENTS.md
