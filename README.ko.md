@@ -6,6 +6,16 @@
 
 linux-proxy-control은 이미 실행 중인 [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller에 연결하는 가벼운 Flask 대시보드입니다. 실제 프록시 트래픽은 Mihomo가 처리하고, 이 프로젝트는 IP 기반 라우팅을 시각적으로 관리하는 제어 화면입니다. ✨
 
+## 🧠 Clash를 알고 있다면
+
+Clash를 알고 있다면 **Mihomo는 Clash 생태계에서 실제로 실행되는 프록시 코어/런타임**이라고 이해하면 됩니다. 익숙한 Clash 스타일 설정을 읽고 proxy, proxy group, rule, 연결을 관리하며 실제 트래픽을 처리합니다. linux-proxy-control은 Clash 클라이언트나 UI를 대체하는 것이 아니라 Mihomo의 External Controller를 통해 Mihomo를 관리하는 대시보드입니다.
+
+- 🧩 **익숙한 모델:** proxy, proxy group, rule, 구독, mixed-port 등을 사용합니다.
+- 🎛️ **이 프로젝트의 역할:** source IP마다 region 또는 exact node를 선택하고 지연 시간에 따른 route를 관리합니다.
+- 🔌 **연결 방식:** Mihomo의 External Controller는 HTTP 제어 API이며, 이 프로젝트는 API로 catalog를 읽고 제어 작업을 보냅니다.
+
+Clash Verge 같은 Clash 계열 프론트엔드를 사용한다면 Mihomo가 실제로 실행 중인지 확인하고, 사용하지 않는 백업 파일이 아니라 현재 활성 Mihomo 설정을 수정하세요.
+
 ## ⭐ 핵심 기능: IP/CIDR → region/노드 라우팅
 
 이 프로젝트의 첫 번째 기능은 특정 클라이언트 IP 또는 CIDR을 원하는 region이나 정확한 Mihomo 노드에 매핑하는 것입니다.

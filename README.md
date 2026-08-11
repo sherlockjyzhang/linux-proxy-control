@@ -6,6 +6,16 @@
 
 linux-proxy-control is a lightweight Flask dashboard with a build-free static frontend. It talks to an already-running [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller and turns source-IP routing into a clear, visual workflow. ✨
 
+## 🧠 If you already know Clash
+
+If Clash is familiar to you, think of **Mihomo as the running proxy core in the Clash ecosystem**, not as another dashboard. It reads the familiar Clash-style configuration, manages proxies, proxy groups, rules, and connections, and carries the actual traffic. linux-proxy-control does not replace your Clash client or UI; it connects to Mihomo’s External Controller to manage it.
+
+- 🧩 **Familiar model:** proxies, proxy groups, rules, subscriptions, and mixed-port behave in the same general configuration family.
+- 🎛️ **What this project adds:** a source-IP routing dashboard for choosing a region or exact node, plus latency-aware decisions.
+- 🔌 **How it connects:** Mihomo’s External Controller is its HTTP control API; this project reads the catalog and sends control actions through that API.
+
+If you use Clash Verge or another Clash-style frontend, make sure it is actually running Mihomo and edit the active Mihomo configuration—not an unused backup file.
+
 ## ⭐ Core feature: IP → region/node routing
 
 Create a rule such as “send `192.168.1.42` to the `Tokyo` region” or “send `2001:db8::42` to the exact node `Singapore-01`.” The mapping is saved by source IP/CIDR and can be applied to Mihomo when source-route writes are explicitly enabled. 🧭

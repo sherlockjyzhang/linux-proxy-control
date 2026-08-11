@@ -6,6 +6,16 @@
 
 linux-proxy-control 是一个轻量的 Flask 控制面板，连接已经运行的 [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller。真正承载代理流量的仍然是 Mihomo，本项目负责把基于 IP 的路由规则变成清晰的可视化操作。✨
 
+## 🧠 如果你熟悉 Clash
+
+如果你知道 Clash，可以把 **Mihomo 理解成 Clash 生态中的代理核心/运行时**，而不是另一个控制面板。它读取熟悉的 Clash 风格配置，管理 proxies、proxy-groups、rules 和连接，并真正承载网络流量。linux-proxy-control 不替代你的 Clash 客户端或 UI，而是通过 Mihomo 的 External Controller 来管理它。
+
+- 🧩 **熟悉的模型：** proxies、proxy-groups、rules、订阅和 mixed-port 都属于相近的配置体系。
+- 🎛️ **本项目增加的能力：** 面向 source IP 的路由控制面板，可以选择 region 或准确节点，并根据延迟做决策。
+- 🔌 **连接方式：** Mihomo 的 External Controller 是它的 HTTP 控制 API，本项目通过这个 API 读取节点目录并发送控制操作。
+
+如果你使用 Clash Verge 或其他 Clash 风格前端，请确认它实际运行的是 Mihomo，并编辑当前生效的 Mihomo 配置，不要只修改不会加载的备份文件。
+
 ## ⭐ 核心功能：IP/CIDR → region/节点路由
 
 最重要的功能是：把某个客户端 IP 或 CIDR 分配到指定 region，或者分配到某个准确的 Mihomo 节点。
