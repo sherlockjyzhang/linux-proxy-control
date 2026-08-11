@@ -1,0 +1,34 @@
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.py[cod]
+*.log
+*.bak
+*.swp
+
+# Local secrets and runtime configuration. Keep examples tracked.
+.env
+*.env
+!.env.example
+!deploy/*.env.example
+secrets/
+*.secret
+*.pem
+*.key
+
+# Runtime state and generated data.
+data/*
+!data/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+*.lock
+*.pid
+tmp-probe-test/
+.codex-worktrees/
+deploy-snapshots/
+
+# Internal planning notes; do not publish with the application.
+PROMPT.md

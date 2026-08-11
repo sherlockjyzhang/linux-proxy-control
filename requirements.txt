@@ -1,0 +1,4 @@
+Flask>=3.0,<4
+gunicorn>=21,<24
+PyYAML>=6,<7
+pytest>=8,<9

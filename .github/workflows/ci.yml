@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile Python
+        run: python -m compileall backend
+      - name: Run tests
+        run: pytest -q
+      - name: Check for likely committed secrets
+        shell: bash
+        run: |
+          # Scan tracked files only. Documentation, workflow code, examples, and
+          # test fixtures are intentionally excluded; report only a count so no
+          # matched secret is ever written to the Actions log.
+          hits=0
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              .github/workflows/*|README.md|*/README.md|*.env.example|tests/*)
+                continue
+                ;;
+            esac
+            if grep -IqE \
+              -e '-----BEGIN[^-]*PRIVATE KEY-----' \
+              -e 'Authorization[[:space:]]*:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}' \
+              -e '(token|secret|password|passwd|api[_-]?key)[[:space:]]*[=:][[:space:]]*[A-Za-z0-9._~+/=-]{12,}' \
+              -e '(ssh|https?://|@)[^[:space:]]*(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)' \
+              "$file"; then
+              hits=$((hits + 1))
+            fi
+          done < <(git ls-files -z)
+          if [[ "$hits" -ne 0 ]]; then
+            echo "Sensitive-information scan failed: $hits tracked file(s) matched." >&2
+            exit 1
+          fi
