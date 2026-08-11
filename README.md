@@ -1,20 +1,38 @@
-# ⚡ RPb5 Proxy Control
+# 🐧 linux-proxy-control
 
-> Turn Mihomo’s engineer console into a friendly remote control for a trusted home LAN. 🏠
+> 🎯 Route a specific IP/CIDR to a specific region or a specific Mihomo node — without hand-editing YAML.
 
-[简体中文](README.zh-CN.md) · [English](README.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-RPb5 Proxy Control is a lightweight Flask dashboard with a build-free static frontend. It talks to an already-running [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller and makes everyday proxy management feel less like editing YAML at 2 a.m. 😄
+linux-proxy-control is a lightweight Flask dashboard with a build-free static frontend. It talks to an already-running [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller and turns source-IP routing into a clear, visual workflow. ✨
 
-### 🎯 What it can do
+## ⭐ Core feature: IP → region/node routing
+
+Create a rule such as “send `192.168.1.42` to the `Tokyo` region” or “send `2001:db8::42` to the exact node `Singapore-01`.” The mapping is saved by source IP/CIDR and can be applied to Mihomo when source-route writes are explicitly enabled. 🧭
+
+```json
+{
+  "ip": "192.168.1.42",
+  "selection": { "kind": "region", "value": "Tokyo" },
+  "allow_cross_region_fallback": false
+}
+```
+
+- 🌏 **Region target:** choose the fastest usable node discovered in that region.
+- 🎯 **Exact node target:** prefer one named node, then use its region according to the fallback policy.
+- 🧩 **IP or CIDR source:** support one client IP or a whole network range, with longest-prefix matching.
+- ⚡ **Health-aware decisions:** test node latency and show the effective route before you commit.
+- 🔒 **Controlled live changes:** keep `ALLOW_SOURCE_IP_ROUTES=false` until the deployment has authentication and network restrictions.
+
+## 🧰 What else it can do
 
 - 👀 Inspect proxy groups and node status
 - ⏱️ Test node latency and pick a healthy route
 - 📚 Manage profiles
-- 🎯 Assign a node, region, or fallback policy to a source IP/CIDR
+- 🗺️ Manage many IP/CIDR mappings from the admin view
 - 🔁 Reload Mihomo after an explicitly enabled configuration change
 
-Mihomo still carries the traffic. This project is only the control panel: it does not ship Mihomo, subscriptions, proxy nodes, or a configuration generator.
+Mihomo still carries the traffic. linux-proxy-control is the control panel: it does not ship Mihomo, subscriptions, proxy nodes, or a configuration generator.
 
 ## 🔌 The three ports you must not mix up
 
@@ -25,7 +43,7 @@ Mihomo still carries the traffic. This project is only the control panel: it doe
 | `8080` | Local demo / Pi transition unit | Temporary app HTTP port; production uses a Unix socket |
 
 ```text
-Browser -- LAN:80 --> nginx -- Unix socket --> RPb5 -- HTTP:9090 --> Mihomo
+Browser -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
 Proxy clients -----------------------------------------------> Mihomo:7890
 ```
 
@@ -55,10 +73,10 @@ secret: "replace-with-a-long-random-secret"
 ### 📍 Choose the controller address
 
 - **Same Raspberry Pi:** use `127.0.0.1:9090`. This is the safest option.
-- **Separate Linux server:** bind Mihomo to the Raspberry Pi’s management-LAN address and firewall port `9090` so only the RPb5 server can connect.
+- **Separate Linux server:** bind Mihomo to the management-LAN address and firewall port `9090` so only the linux-proxy-control server can connect.
 - **Avoid `0.0.0.0:9090`:** if you truly need it, use a strong secret plus strict firewall and upstream ACL rules.
 
-Restart Mihomo, then verify the API before starting RPb5:
+Restart Mihomo, then verify the API before starting linux-proxy-control:
 
 ```bash
 export MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
@@ -80,7 +98,7 @@ unset MIHOMO_SECRET
 
 If this fails, check that Mihomo restarted, the port is `9090` rather than `7890`, the secret matches, and the firewall allows the connection. 🩺
 
-## 🛠️ Connect RPb5 to Mihomo
+## 🛠️ Connect linux-proxy-control to Mihomo
 
 Copy the example outside the repository and edit the copy:
 
@@ -194,7 +212,7 @@ sudo -v
 ./deploy/update-and-restart.sh
 ```
 
-Back up the env file, RPb5 config directory, and Mihomo’s active configuration separately. Failed deployment snapshots are kept under `/var/lib/rpb5-proxy-control/deploy-snapshots/`.
+Back up the env file, the linux-proxy-control config directory, and Mihomo’s active configuration separately. Failed deployment snapshots are kept under `/var/lib/rpb5-proxy-control/deploy-snapshots/`.
 
 ## 🧪 Tests
 
@@ -211,7 +229,7 @@ Mihomo is not required for the local test suite:
 | --- | --- |
 | `connected: false` | Mihomo is running, `external-controller` is `9090`, and the secret matches |
 | Page does not open | `systemctl status`, `nginx -t`, UFW, and Unix socket permissions |
-| Page opens but no nodes appear | Call `/version` and `/proxies`; ensure RPb5 points to `9090`, not `7890` |
+| Page opens but no nodes appear | Call `/version` and `/proxies`; ensure linux-proxy-control points to `9090`, not `7890` |
 | Config change fails | `ALLOW_*` flags, the active `MIHOMO_CONFIG_PATH`, and `rpb5` permissions |
 | LAN access is wider than expected | Remove port forwards and review UFW/router ACLs immediately |
 

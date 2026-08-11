@@ -1,71 +1,83 @@
-# RPb5 Proxy Control
+# 🐧 linux-proxy-control
 
-> Mihomo の技術者向けコンソールを、家庭 LAN 用の分かりやすいリモコンに。
+> 🎯 特定の IP/CIDR を、指定した region または Mihomo の特定ノードへルーティング。YAML の手編集は不要です。
 
-[简体中文](README.zh-CN.md) · [English](README.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-RPb5 Proxy Control は、Flask とビルド不要の静的フロントエンドで作った軽量なダッシュボードです。すでに動作している [Mihomo](https://github.com/MetaCubeX/mihomo) の External Controller API に接続し、プロキシグループの確認、遅延テスト、ノード選択、profile 管理、送信元 IP/CIDR ごとのルーティングを行います。
+linux-proxy-control は、実行中の [Mihomo](https://github.com/MetaCubeX/mihomo) External Controller に接続する軽量な Flask ダッシュボードです。通信を処理するのは Mihomo、このプロジェクトは IP ベースのルーティングを管理する操作画面です。✨
 
-Mihomo 本体、サブスクリプション、ノード、設定生成機能は含みません。通信を処理するのは Mihomo、このプロジェクトは操作画面です。
+## ⭐ 主な機能: IP/CIDR → region / node ルーティング
 
-## まず覚える 3 つのポート
+このプロジェクトの主な機能は、特定のクライアント IP または CIDR を、指定した region または正確な Mihomo node に割り当てることです。
+
+~~~json
+{
+  "ip": "192.168.1.42",
+  "selection": { "kind": "region", "value": "Tokyo" },
+  "allow_cross_region_fallback": false
+}
+~~~
+
+- 🌏 **region 指定:** その region 内で最も速く利用可能な node を選択します。
+- 🎯 **exact node 指定:** 指定 node を優先します。利用できない場合は、その node の catalog region を試します。
+- 🔁 **fallback:** allow_cross_region_fallback が true なら他 region の全体 fallback も許可します。false の場合、最後は DIRECT です。
+- 🧩 **IP/CIDR:** 単一 IP とネットワーク範囲を指定できます。複数の CIDR に一致した場合は、最長 prefix、つまり最も具体的なルールを使います。
+- ⚡ **health-aware:** node の遅延を確認し、適用される route を画面で確認できます。
+- 🔒 **安全な変更:** ALLOW_SOURCE_IP_ROUTES の既定値は false。認証、TLS、ネットワーク制限を準備してから true にしてください。
+
+その他、proxy group と node の状態確認、遅延テスト、profile 管理、複数 mapping の編集、許可した場合の Mihomo reload に対応します。
+
+## 🔌 3 つのポート
 
 | ポート | 用途 |
 | --- | --- |
-| `7890` | Mihomo の `mixed-port`。PC やスマートフォンのプロキシ通信 |
-| `9090` | Mihomo の `external-controller`。RPb5 が呼び出す HTTP API |
-| `8080` | ローカル Demo / Pi 移行用。本番サービスは Unix socket を使用 |
+| 7890 | Mihomo mixed-port。クライアントのプロキシ通信 |
+| 9090 | Mihomo external-controller。linux-proxy-control が呼ぶ HTTP API |
+| 8080 | ローカル Demo / Pi 移行 unit。本番は Unix socket |
 
-```text
-ブラウザ -- LAN:80 --> nginx -- Unix socket --> RPb5 -- HTTP:9090 --> Mihomo
-プロキシクライアント ------------------------------------------> Mihomo:7890
-```
+~~~text
+ブラウザ -- LAN:80 --> nginx -- Unix socket --> linux-proxy-control -- HTTP:9090 --> Mihomo
+プロキシクライアント ----------------------------------------------> Mihomo:7890
+~~~
 
-`7890` は Controller API ではなく、`9090` はプロキシポートではありません。
+7890 は Controller API ではなく、9090 はプロキシポートではありません。
 
-## セキュリティ境界
+## 🔐 セキュリティ境界
 
-ブラウザログイン、API token、TLS、組み込みアクセス制御はありません。信頼できる LAN、または認証と TLS を担当する別のリバースプロキシの後ろで使用してください。`7890`、`9090`、`8080` をインターネットへポート転送しないでください。
+ブラウザログイン、API token、TLS、組み込みアクセス制御はありません。信頼できる LAN、または認証済み TLS reverse proxy の後ろで使用してください。7890、9090、8080 をインターネットへ転送しないでください。
 
-`ALLOW_CONFIG_WRITE`、`ALLOW_PROFILE_ACTIVATE`、`ALLOW_SOURCE_IP_ROUTES` は既定値がすべて `false` です。認証、TLS、ネットワーク制限、最小権限のファイル設定を用意した後だけ、必要な機能を個別に有効にしてください。`MIHOMO_SECRET` は root のみ読める env ファイルに置き、Git やブラウザへ出さないでください。
+MIHOMO_SECRET は root のみ読める env ファイルに置き、Git やブラウザへ出さないでください。ALLOW_CONFIG_WRITE、ALLOW_PROFILE_ACTIVATE、ALLOW_SOURCE_IP_ROUTES は既定で false です。認証、TLS、ネットワーク制限、最小権限を用意した後だけ必要な write 機能を有効にしてください。
 
-## Mihomo External Controller を設定する
+## 🧩 Mihomo External Controller の設定
 
-実際に Mihomo が読み込んでいる `config.yaml` を編集します。Clash Verge を使う場合は、Clash Verge のアクティブな Mihomo 設定を変更してください。
+Mihomo が実際に読み込む config.yaml を編集します。Clash Verge の場合は active な Mihomo 設定を変更してください。
 
-```yaml
+~~~yaml
 mixed-port: 7890
 external-controller: 127.0.0.1:9090
 secret: "replace-with-a-long-random-secret"
-```
+~~~
 
-RPb5 と Mihomo が同じ Raspberry Pi にある場合は `127.0.0.1:9090` が推奨です。別の Linux サーバーから接続する場合は、Mihomo 側を管理 LAN のアドレスに bind し、ファイアウォールで RPb5 サーバーだけを許可します。`0.0.0.0:9090` はなるべく避けてください。
+同じ Raspberry Pi なら 127.0.0.1:9090 が推奨です。別の Linux サーバーから接続する場合は、Mihomo を管理 LAN のアドレスに bind し、9090 は linux-proxy-control サーバーだけに許可します。0.0.0.0:9090 はできるだけ避けてください。
 
-Mihomo を再起動し、RPb5 を起動する前に API と secret を確認します。
-
-```bash
+~~~bash
 export MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
 read -rsp 'Mihomo secret: ' MIHOMO_SECRET
 echo
-curl -fsS -H "Authorization: Bearer ${MIHOMO_SECRET}" \
-  "${MIHOMO_CONTROLLER_URL}/version"
+curl -fsS -H "Authorization: Bearer $MIHOMO_SECRET" "$MIHOMO_CONTROLLER_URL/version"
 unset MIHOMO_SECRET
-```
+~~~
 
-失敗する場合は、Mihomo の再起動、`7890` と `9090` の取り違え、secret の一致、ファイアウォールを確認してください。`/proxies` でグループの取得も確認できます。
+失敗時は Mihomo の再起動、7890/9090、secret、ファイアウォールを確認してください。
 
-## RPb5 側の設定
+## 🛠️ linux-proxy-control の接続設定
 
-例をリポジトリ外へコピーし、実際の値を入力します。
-
-```bash
-sudo install -m 0600 -o root -g root \
-  deploy/rpb5-proxy-control.env.example \
-  /etc/rpb5-proxy-control/app.env
+~~~bash
+sudo install -m 0600 -o root -g root deploy/rpb5-proxy-control.env.example /etc/rpb5-proxy-control/app.env
 sudoedit /etc/rpb5-proxy-control/app.env
-```
+~~~
 
-```dotenv
+~~~dotenv
 DEMO_MODE=false
 MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090
 MIHOMO_SECRET=your-real-mihomo-secret
@@ -76,35 +88,66 @@ IP_MAPPING_FILE=/var/lib/rpb5-proxy-control/config/ip-mappings.json
 ALLOW_CONFIG_WRITE=false
 ALLOW_PROFILE_ACTIVATE=false
 ALLOW_SOURCE_IP_ROUTES=false
-```
+~~~
 
-`MIHOMO_CONFIG_PATH` は、設定変更や source-IP ルートを使う場合のアクティブな YAML です。サービスユーザー `rpb5` に必要最小限の読み書き権限を付与し、`chmod 777` は使わないでください。`PROFILES_DIR` と `IP_MAPPING_FILE` は `CONFIG_DIR` の内部に置く必要があります。
+MIHOMO_CONFIG_PATH は Mihomo が実際に読み込む YAML です。source-IP route を Mihomo に書くには ALLOW_SOURCE_IP_ROUTES=true と必要な権限が必要です。PROFILES_DIR と IP_MAPPING_FILE は CONFIG_DIR の内部に置いてください。chmod 777 は使わず、rpb5 に最小権限だけを与えます。
 
-## Demo と本番インストール
+## 🚀 Demo
 
-Mihomo なしで画面を試すには次を実行します。
+Mihomo を使わずに画面を確認できます。
 
-```bash
+~~~bash
 git clone https://github.com/sherlockjyzhang/linux-proxy-control.git rpb5-proxy-control
 cd rpb5-proxy-control
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 DEMO_MODE=true .venv/bin/python -m backend.app
-```
+~~~
 
-<http://127.0.0.1:8080> を開いてください。Node.js と npm は不要です。
+http://127.0.0.1:8080 を開いてください。Node.js と npm は不要です。
 
-Raspberry Pi OS / Debian / Ubuntu では、`apt` で `git python3-venv python3-pip nginx curl` を入れ、`rpb5` ユーザーと `/opt/rpb5-proxy-control` を作成します。その後、`deploy/rpb5-proxy-control.env.example` を `/etc/rpb5-proxy-control/app.env` にコピーし、`deploy/rpb5-proxy-control.service` と `deploy/nginx.conf` を systemd/nginx にインストールして `nginx -t`、`systemctl daemon-reload`、`systemctl enable --now rpb5-proxy-control` を実行します。80/tcp は管理 LAN だけに UFW で許可してください。詳細なコマンドは [中国語 README](README.md) の本番手順を参照できます。
+## 🐧 Raspberry Pi OS / Debian / Ubuntu 本番配置
 
-更新：
+既定の配置は次のとおりです。
 
-```bash
+- アプリ: /opt/rpb5-proxy-control
+- サービスユーザー: rpb5
+- 永続データ: /var/lib/rpb5-proxy-control
+- env: /etc/rpb5-proxy-control/app.env
+- Gunicorn socket: /run/rpb5-proxy-control/gunicorn.sock
+
+apt で git、python3-venv、python3-pip、nginx、curl をインストールし、rpb5 ユーザーとアプリディレクトリを作成します。deploy/rpb5-proxy-control.service と deploy/nginx.conf を systemd/nginx にインストールし、nginx -t、systemctl daemon-reload、systemctl enable --now rpb5-proxy-control を実行してください。80/tcp は管理 LAN にだけ UFW で許可し、本番で 8080 を公開しないでください。
+
+## 🔄 更新、ロールバック、テスト
+
+更新スクリプトは clean な Git worktree、env、sudo、nginx、systemd を要求します。app.env、profile、mapping、Mihomo の active config は上書きしません。
+
+~~~bash
 cd /opt/rpb5-proxy-control
 git pull --ff-only
 sudo -v
 ./deploy/update-and-restart.sh
-```
+~~~
 
-テスト：`.venv/bin/python -m compileall backend` と `.venv/bin/pytest -q`。障害時は `journalctl -u rpb5-proxy-control`、`nginx -t`、`/version`、`/proxies`、UFW を確認してください。
+失敗した deployment snapshot は /var/lib/rpb5-proxy-control/deploy-snapshots/ に残ります。更新前に env、linux-proxy-control の設定ディレクトリ、Mihomo の active config を別途バックアップしてください。
 
-MIT License：[LICENSE](LICENSE) · セキュリティ：[SECURITY.md](SECURITY.md)
+~~~bash
+.venv/bin/python -m compileall backend
+.venv/bin/pytest -q
+~~~
+
+Mihomo なしでテストできます。
+
+## 🩺 トラブルシューティング
+
+| 症状 | まず確認すること |
+| --- | --- |
+| connected: false | Mihomo、external-controller が 9090、secret の一致 |
+| ページが開かない | systemctl status、nginx -t、UFW、Unix socket の権限 |
+| node が表示されない | /version、/proxies、controller が 9090 を指しているか |
+| mapping が適用できない | ALLOW_*、MIHOMO_CONFIG_PATH、rpb5 の権限 |
+| LAN 外からも開ける | port-forward を削除し、UFW とルーター ACL を確認 |
+
+## 📄 ライセンス
+
+MIT License: [LICENSE](LICENSE) · セキュリティ: [SECURITY.md](SECURITY.md)
