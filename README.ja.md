@@ -2,7 +2,7 @@
 
 > Mihomo の技術者向けコンソールを、家庭 LAN 用の分かりやすいリモコンに。
 
-[简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+[简体中文](README.zh-CN.md) · [English](README.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
 RPb5 Proxy Control は、Flask とビルド不要の静的フロントエンドで作った軽量なダッシュボードです。すでに動作している [Mihomo](https://github.com/MetaCubeX/mihomo) の External Controller API に接続し、プロキシグループの確認、遅延テスト、ノード選択、profile 管理、送信元 IP/CIDR ごとのルーティングを行います。
 

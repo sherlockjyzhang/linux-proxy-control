@@ -2,7 +2,7 @@
 
 > Mihomo의 엔지니어용 콘솔을 신뢰할 수 있는 홈 LAN용 리모컨으로 바꿉니다.
 
-[简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+[简体中文](README.zh-CN.md) · [English](README.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
 RPb5 Proxy Control은 Flask와 빌드가 필요 없는 정적 프론트엔드로 만든 가벼운 대시보드입니다. 이미 실행 중인 [Mihomo](https://github.com/MetaCubeX/mihomo)의 External Controller API에 연결하여 프록시 그룹 확인, 지연 시간 테스트, 노드 선택, profile 관리, 소스 IP/CIDR별 라우팅을 제공합니다.
 
